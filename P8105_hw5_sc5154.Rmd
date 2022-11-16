@@ -1,0 +1,12 @@
+---
+title: "P8105_hw5_sc5154"
+author: "Shaohan Chen"
+date: "2022-11-16"
+output: html_document
+---
+
+This is the solution of P8105 Data Science Homework5.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, message = FALSE)
+```
