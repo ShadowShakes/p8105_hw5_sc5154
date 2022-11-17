@@ -25,10 +25,10 @@ Then we make a spaghetti plot showing observations on each subject over time, an
 Let's start with loading the dataset.
 
 ```{r}
-df = 
+df_par = 
   tibble(
-    file_name = list.files("./data/"),
-    file_path = str_c("./data/", file_name)
+    file_name = list.files("./data_p1/"),
+    file_path = str_c("./data_p1/", file_name)
    ) %>%
   mutate(data = map(file_path, read_csv)) %>%
   unnest()
@@ -38,7 +38,7 @@ Then let's tidy the dataset.
 
 ```{r}
 df_par = 
-  df %>%
+  df_par %>%
   mutate(
     file_name = str_remove(file_name, ".csv"),
   ) %>%
@@ -77,3 +77,66 @@ So we make the plot. Here are some difference between groups:
 The experimental arm and control arm have similar average observations level at the beginning. As time goes by, the control arm keeps to be in the same level as the initial stage, but the experimental arm increases roughly linearly over time, and reaches a much higher level than the control arm.
 
 ## Problem 2
+
+We first import the dataset downloaded.
+```{r}
+df_hom = 
+  read_csv("data_p2/homicide-data.csv") 
+
+head(df_hom, 5)
+```
+
+The raw data has `r nrow(df_hom)` rows and `r ncol(df_hom)` columns. The variables are: `r colnames(df_hom)`.   
+Variable 'reported_date' is the reported date of homicide, and variables like 'victim_last' records the personal information of victim. Other variables like 'state' records the location of where the homicide took place.
+
+
+From the dataset description, we know that the Washington Post collected data on more than 52,000 criminal homicides over the past decade in 50 of the largest American cities.
+
+Next we create a city_state variable (e.g. “Baltimore, MD”) and then summarize within cities to obtain the total number of homicides and the number of unsolved homicides.
+
+Note that there seems to be a error in an observation, where the city 'Tulsa' should correspond with the 'OK' state according to common sense and other columns, but was mistaken as 'AL'. So, I just fixed it.
+
+```{r}
+df_hom = 
+  df_hom %>%
+  mutate(
+    state = ifelse(city == "Tulsa", "OK", state),
+    city_state = str_c(city, ", ", state)
+  ) %>%
+  group_by(city_state) %>%
+  summarize(
+    n_tot_obs = n(),
+    n_unsolve_dobs = sum(disposition %in% c("Closed without arrest", "Open/No arrest"))
+  )
+```
+
+The 'df_hom' dataset now looks like:
+```{r}
+head(df_hom, 5)
+```
+
+
+Next, for the city of Baltimore, MD, use the prop.test function to estimate the proportion of homicides that are unsolved; save the output of prop.test as an R object, apply the broom::tidy to this object and pull the estimated proportion and confidence intervals from the resulting tidy dataframe.
+
+```{r}
+df_bal = 
+  df_hom %>%
+  filter(city_state == "Baltimore, MD")
+
+prop.test(
+  x = df_bal$n_unsolve_dobs,
+  n = df_bal$n_tot_obs
+  ) %>%
+  broom::tidy(estimate, conf.low, conf.high)
+```
+
+Now we run prop.test for each of the cities in my dataset, and extract both the proportion of unsolved homicides and the confidence interval for each. I will do this within a “tidy” pipeline, making use of purrr::map, purrr::map2, list columns and unnest as necessary to create a tidy dataframe with estimated proportions and CIs for each city.
+
+```{r}
+
+```
+
+
+Last, we will create a plot that shows the estimates and CIs for each city – check out geom_errorbar for a way to add error bars based on the upper and lower limits. Organize cities according to the proportion of unsolved homicides.
+
+
