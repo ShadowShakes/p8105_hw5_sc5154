@@ -106,7 +106,7 @@ df_hom =
   group_by(city_state) %>%
   summarize(
     n_tot_obs = n(),
-    n_unsolve_dobs = sum(disposition %in% c("Closed without arrest", "Open/No arrest"))
+    n_unsolved_obs = sum(disposition %in% c("Closed without arrest", "Open/No arrest"))
   )
 ```
 
@@ -124,19 +124,54 @@ df_bal =
   filter(city_state == "Baltimore, MD")
 
 prop.test(
-  x = df_bal$n_unsolve_dobs,
+  x = df_bal$n_unsolved_obs,
   n = df_bal$n_tot_obs
   ) %>%
-  broom::tidy(estimate, conf.low, conf.high)
+  broom::tidy() %>%
+  select(estimate, conf.low, conf.high)
 ```
 
 Now we run prop.test for each of the cities in my dataset, and extract both the proportion of unsolved homicides and the confidence interval for each. I will do this within a “tidy” pipeline, making use of purrr::map, purrr::map2, list columns and unnest as necessary to create a tidy dataframe with estimated proportions and CIs for each city.
 
 ```{r}
+df_unsolved = 
+  df_hom %>%
+  mutate(
+    test = map2(
+      .x = n_unsolved_obs,
+      .y = n_tot_obs,
+      ~ broom::tidy(prop.test(x = .x, n = .y))
+    ) 
+  ) %>%
+  unnest(test) %>%
+  janitor::clean_names() %>% 
+  select(city_state, estimate, conf_low, conf_high)
+```
 
+The 'df_unsolved' dataset looks like:
+```{r}
+head(df_unsolved, 5)
 ```
 
 
 Last, we will create a plot that shows the estimates and CIs for each city – check out geom_errorbar for a way to add error bars based on the upper and lower limits. Organize cities according to the proportion of unsolved homicides.
+
+```{r fig.height = 10}
+df_unsolved %>% 
+  ggplot(
+    aes(x = estimate, 
+        y = fct_reorder(city_state, estimate)
+        )
+    ) +
+  geom_point() +
+  geom_errorbar(
+    aes(xmax = conf_high, 
+        xmin = conf_low)) +
+  labs(
+    title = "The estimates and CIs for each city",
+    x = "Proportion Estimation",
+    y = "Location: City, State"
+  )
+```
 
 
