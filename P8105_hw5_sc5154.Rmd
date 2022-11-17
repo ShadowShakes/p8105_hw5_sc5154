@@ -174,4 +174,120 @@ df_unsolved %>%
   )
 ```
 
+## Problem 3
+
+First we set the following design elements:
+```{r}
+n = 30
+sigma = 5
+```
+
+The simulation process can be written into a function:
+
+```{r}
+simulate = function(mu, n = 30, sigma = 5){
+  x = rnorm(n = n, mean = mu, sd = sigma)
+  t_test_result = t.test(x)
+  t_test_result %>%
+    broom::tidy()
+}
+```
+
+Then we set $\mu=0$. Generate 5000 datasets from the model. For each dataset, save $\hat{\mu}=0$  and the p-value arising from a test of $H$ :$\mu$ = 0 using $\alpha$ =0.05.
+
+```{r}
+df_sim_mu0 = 
+  expand.grid(
+    mu = 0,
+    iter = 1:5000
+  ) %>%
+  mutate(
+    t_test_result = map(.x = mu,
+                        ~ simulate(mu = .x)
+                        )
+  ) %>%
+  unnest(t_test_result) %>%
+  select(mu, estimate, p.value)
+```
+
+The first 5 rows of the result is:
+```{r}
+head(df_sim_mu0, 5)
+```
+
+Then we repeat the above process for $\mu$ = 1,2,3,4,5,6.
+
+```{r}
+df_sim_mu = 
+  expand.grid(
+    mu = c(1, 2, 3, 4, 5, 6),
+    iter = 1:5000
+  ) %>%
+  mutate(
+    t_test_result = map(.x = mu,
+                        ~ simulate(mu = .x)
+                        )
+  ) %>%
+  unnest(t_test_result) %>%
+  select(mu, estimate, p.value)
+```
+
+And we can see the first 5 rows of the 'df_sim_mu' where $\mu$ could be 1,2,3,4,5,6.
+
+Then we make a plot showing the proportion of times the null was rejected (the power of the test) on the y axis and the true value of $\mu$ on the x axis. Describe the association between effect size and power.
+
+```{r}
+df_sim_mu %>% 
+  group_by(mu) %>% 
+  summarize(
+    power = sum(p.value < 0.05) / n()
+  ) %>% 
+  ggplot(aes(x = mu, y = power)) + 
+  geom_point() +
+  geom_path() +
+  labs(
+    x = "True means",
+    y = "The power of test",
+    title = "Plot: Power of Test")
+```
+
+The power of the test increases as the effect size increases and becomes far away from null hypothesis, but the increasing speed is gradually slower, and finally approaches near 1.
+
+Then we make a plot showing the average estimate of $\mu$ on the y axis and the true value of $\mu$ on the x axis.
+```{r}
+df_sim_mu %>% 
+  group_by(mu) %>% 
+  summarize(
+    avg_mu = mean(estimate)
+  ) %>% 
+  ggplot(aes(x = mu, y = avg_mu)) + 
+  geom_point() +
+  geom_path() +
+  labs(
+    x = "True mean",
+    y = "Average Mean Estimate",
+    title = "Plot 1: Average Mean Estimate vs. True mean")
+```
+
+Then we make a second plot (or overlay on the first) the average estimate of $\mu$  only in samples for which the null was rejected on the y axis and the true value of $\mu$ on the x axis.
+```{r}
+df_sim_mu %>% 
+  filter(p.value < 0.05) %>%
+  group_by(mu) %>% 
+  summarize(
+    avg_mu = mean(estimate)
+  ) %>% 
+  ggplot(aes(x = mu, y = avg_mu)) + 
+  geom_point() +
+  geom_path() +
+  labs(
+    x = "True mean",
+    y = "Average Mean Estimate (reject null)",
+    title = "Plot 2: Average Mean Estimate (reject null) vs. True mean")
+```
+
+By comparing two plots, we can conclude that:  
+
+At initial stage when the effect size is not large, the sample average of $\hat{\mu}$ is obviously unequal (larger) to the true value of $\mu$, given that the null hypothesis is rejected.  
+When the effect size increases, the sample average of $\hat{\mu}$ becomes approximately equal to the true value of $\mu$. I think that's because with the increasing of effect size, we also have a larger power in the test, which leads to that phenomenon. This indicates that we may have a higher risk to reject the null when the power and effect size is small.
 
