@@ -2,7 +2,7 @@
 title: "P8105_hw5_sc5154"
 author: "Shaohan Chen"
 date: "2022-11-16"
-output: html_document
+output: github_document
 ---
 
 This is the solution of P8105 Data Science Homework5.
@@ -11,5 +11,54 @@ This is the solution of P8105 Data Science Homework5.
 knitr::opts_chunk$set(collapse = TRUE, message = FALSE)
 ```
 
+```{r}
+library(tidyverse)
+```
+
 ## Problem 1
+
+The goal of this problem is:
+
+Create a tidy dataframe containing data from all participants, including the subject ID, arm, and observations over time.  
+Then we make a spaghetti plot showing observations on each subject over time, and comment on differences between groups.
+
+Let's start with loading the dataset.
+
+```{r}
+df = 
+  tibble(
+    file_name = list.files("./data/"),
+    file_path = str_c("./data/", file_name)
+   ) %>%
+  mutate(data = map(file_path, read_csv)) %>%
+  unnest()
+```
+
+Then let's tidy the dataset.
+
+```{r}
+df_par = 
+  df %>%
+  mutate(
+    file_name = str_remove(file_name, ".csv"),
+  ) %>%
+  separate(file_name, into = c("arm", "subject_id"), sep = "_") %>%
+  pivot_longer(
+    cols = week_1:week_8,
+    names_to = "week",
+    names_prefix = "week_",
+    values_to = "observation"
+  )
+```
+
+Let's see how it looks like now
+```{r}
+head(df_par, 5)
+```
+
+Next, we make a spaghetti plot showing observations on each subject over time, and comment on differences between groups.
+
+```{r}
+
+```
 
